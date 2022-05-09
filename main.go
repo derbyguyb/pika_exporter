@@ -15,7 +15,8 @@ import (
 )
 
 var (
-	hostFile           = flag.String("pika.host-file", getEnv("PIKA_HOST_FILE", ""), "Path to file containing one or more pika nodes, separated by newline. NOTE: mutually exclusive with pika.addr.")
+	hostFile           = flag.String("pika.host-file", getEnv("PIKA_HOST_FILE", ""), "Path to file containing one or more pika nodes, separated by newline. NOTE: mutually exclusive with pika.addr and pika.host-http.")
+	hostHttp           = flag.String("pika.host-http", getEnv("PIKA_HOST_HTTP", ""), "Path to http containing one or more pika nodes, {\"instances\": [{\"alias\": \"test1\", \"addr\": \"127.0.0.1:7000\"}]}. NOTE: mutually exclusive with pika.addr and pika.host-file.")
 	addr               = flag.String("pika.addr", getEnv("PIKA_ADDR", ""), "Address of one or more pika nodes, separated by comma.")
 	password           = flag.String("pika.password", getEnv("PIKA_PASSWORD", ""), "Password for one or more pika nodes, separated by comma.")
 	alias              = flag.String("pika.alias", getEnv("PIKA_ALIAS", ""), "Pika instance alias for one or more pika nodes, separated by comma.")
@@ -71,6 +72,8 @@ func main() {
 	var dis discovery.Discovery
 	if *hostFile != "" {
 		dis, err = discovery.NewFileDiscovery(*hostFile)
+	} else if *hostHttp != "" {
+		dis, err = discovery.NewHttpDiscovery(*hostHttp)
 	} else {
 		dis, err = discovery.NewCmdArgsDiscovery(*addr, *password, *alias)
 	}
