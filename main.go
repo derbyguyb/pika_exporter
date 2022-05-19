@@ -52,7 +52,7 @@ func getEnvInt(key string, defaultVal int) int {
 func main() {
 	flag.Parse()
 
-	log.Println("Pika Metrics Exporter ", BuildVersion, "build date:", BuildDate, "sha:", BuildCommitSha, "go version:", GoVersion)
+	log.Println("Pika Metrics Exporter")
 	if *showVersion {
 		return
 	}
@@ -87,21 +87,14 @@ func main() {
 	}
 	defer e.Close()
 
-	buildInfo := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "pika_exporter_build_info",
-		Help: "pika exporter build_info",
-	}, []string{"build_version", "commit_sha", "build_date", "golang_version"})
-	buildInfo.WithLabelValues(BuildVersion, BuildCommitSha, BuildDate, GoVersion).Set(1)
-
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(e)
-	registry.MustRegister(buildInfo)
 	http.Handle(*metricPath, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
-<head><title>Pika Exporter v` + BuildVersion + `</title></head>
+<head><title>Pika Exporter</title></head>
 <body>
-<h1>Pika Exporter ` + BuildVersion + `</h1>
+<h1>Pika Exporter</h1>
 <p><a href='` + *metricPath + `'>Metrics</a></p>
 </body>
 </html>`))
