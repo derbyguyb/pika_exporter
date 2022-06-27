@@ -15,7 +15,8 @@ import (
 )
 
 var (
-	hostFile           = flag.String("pika.host-file", getEnv("PIKA_HOST_FILE", ""), "Path to file containing one or more pika nodes, separated by newline. NOTE: mutually exclusive with pika.addr.")
+	hostFile           = flag.String("pika.host-file", getEnv("PIKA_HOST_FILE", ""), "Path to file containing one or more pika nodes, separated by newline. NOTE: mutually exclusive with pika.addr and pika.host-http.")
+	hostHttp           = flag.String("pika.host-http", getEnv("PIKA_HOST_HTTP", ""), "Path to http containing one or more pika nodes, {\"instances\": [{\"alias\": \"test1\", \"addr\": \"127.0.0.1:7000\"}]}. NOTE: mutually exclusive with pika.addr and pika.host-file.")
 	addr               = flag.String("pika.addr", getEnv("PIKA_ADDR", ""), "Address of one or more pika nodes, separated by comma.")
 	password           = flag.String("pika.password", getEnv("PIKA_PASSWORD", ""), "Password for one or more pika nodes, separated by comma.")
 	alias              = flag.String("pika.alias", getEnv("PIKA_ALIAS", ""), "Pika instance alias for one or more pika nodes, separated by comma.")
@@ -51,7 +52,7 @@ func getEnvInt(key string, defaultVal int) int {
 func main() {
 	flag.Parse()
 
-	log.Println("Pika Metrics Exporter ", BuildVersion, "build date:", BuildDate, "sha:", BuildCommitSha, "go version:", GoVersion)
+	log.Println("Pika Metrics Exporter")
 	if *showVersion {
 		return
 	}
@@ -71,6 +72,8 @@ func main() {
 	var dis discovery.Discovery
 	if *hostFile != "" {
 		dis, err = discovery.NewFileDiscovery(*hostFile)
+	} else if *hostHttp != "" {
+		dis, err = discovery.NewHttpDiscovery(*hostHttp)
 	} else {
 		dis, err = discovery.NewCmdArgsDiscovery(*addr, *password, *alias)
 	}
@@ -84,21 +87,14 @@ func main() {
 	}
 	defer e.Close()
 
-	buildInfo := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "pika_exporter_build_info",
-		Help: "pika exporter build_info",
-	}, []string{"build_version", "commit_sha", "build_date", "golang_version"})
-	buildInfo.WithLabelValues(BuildVersion, BuildCommitSha, BuildDate, GoVersion).Set(1)
-
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(e)
-	registry.MustRegister(buildInfo)
 	http.Handle(*metricPath, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
-<head><title>Pika Exporter v` + BuildVersion + `</title></head>
+<head><title>Pika Exporter</title></head>
 <body>
-<h1>Pika Exporter ` + BuildVersion + `</h1>
+<h1>Pika Exporter</h1>
 <p><a href='` + *metricPath + `'>Metrics</a></p>
 </body>
 </html>`))
